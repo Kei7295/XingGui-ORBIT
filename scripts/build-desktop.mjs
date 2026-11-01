@@ -17,6 +17,8 @@ function run(cmd, args, cwd = root, env = process.env) {
   execFileSync(cmd, args, { cwd, stdio: 'inherit', env })
 }
 
+run('npm', ['run', 'build'])
+
 fs.rmSync(stageDir, { recursive: true, force: true })
 fs.mkdirSync(stageDir, { recursive: true })
 
@@ -66,7 +68,15 @@ const outDir = path.join(releaseDir, `${appName}-win32-x64`)
 const zipName = `${appName}-${version}-win32-x64.zip`
 const zipPath = path.join(releaseDir, zipName)
 fs.rmSync(zipPath, { force: true })
-run('zip', ['-qr', zipPath, path.basename(outDir), '-x', '*/resources/app/data/*'], releaseDir)
+if (process.platform === 'win32') {
+  run('powershell', [
+    '-NoProfile',
+    '-Command',
+    `Compress-Archive -Path '${path.basename(outDir)}' -DestinationPath '${zipName}' -Force`
+  ], releaseDir)
+} else {
+  run('zip', ['-qr', zipPath, path.basename(outDir), '-x', '*/resources/app/data/*'], releaseDir)
+}
 
 const size = (fs.statSync(zipPath).size / 1024 / 1024).toFixed(1)
 console.log(`\n✔ Windows 桌面版已生成：release/${zipName}（${size} MB）`)
