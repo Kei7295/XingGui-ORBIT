@@ -1,6 +1,7 @@
 node_modules/
 dist/
 data/
+release/
 .uploads/
 *.log
 .DS_Store

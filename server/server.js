@@ -8,6 +8,7 @@ import { engine, ApiError, VERSION } from './engine.js'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DIST = path.join(__dirname, '..', 'dist')
 const PORT = Number(process.env.PORT || 8787)
+const HOST = process.env.ORBIT_HOST || '0.0.0.0'
 
 const MIME = {
   '.html': 'text/html; charset=utf-8',
@@ -592,7 +593,7 @@ server.on('upgrade', (req, socket, head) => {
   wss.handleUpgrade(req, socket, head, (ws) => wss.emit('connection', ws, req, token))
 })
 
-server.listen(PORT, '0.0.0.0', () => {
+server.listen(PORT, HOST, () => {
   syncNetwork()
   engine.log('info', 'CORE', `星轨 ORBIT ${VERSION} 启动 · 端口 ${PORT}`)
   console.log(`\n  星轨 · ORBIT ${VERSION}\n  ─────────────────────────────\n  控制台 / API : http://localhost:${PORT}\n  OneBot HTTP  : http://localhost:${PORT}/onebot?access_token=orbit-demo-token\n  OneBot WS    : ws://localhost:${PORT}/onebot/ws?access_token=orbit-demo-token\n`)

@@ -86,6 +86,18 @@ npm start
 
 打开 **http://localhost:8787** 即可进入控制台。
 
+### Windows 桌面版
+
+不想装 Node？直接下载便携版压缩包：
+
+1. 打开 [Releases](https://github.com/Kei7295/XingGui-ORBIT/releases) 下载 `XingGui-ORBIT-0.0.1-beta-win32-x64.zip`；
+2. 解压后双击 `XingGui-ORBIT.exe`；
+3. 数据保存在 `%APPDATA%\XingGui ORBIT\data`，卸载时删除该目录即可。
+
+桌面版内置 Node 运行时，只监听 `127.0.0.1`，无需额外的命令窗口；首次运行若遇到 SmartScreen 提示，选择「更多信息 → 仍要运行」。
+
+自行构建桌面版：`npm run build:win`，产物输出到 `release/`。开发调试可直接运行 `npm run desktop`。
+
 开发模式（前端热更新 + 后端独立运行）：
 
 ```bash
