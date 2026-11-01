@@ -1,0 +1,27 @@
+{
+  "name": "orbit-qq-core",
+  "version": "0.0.1-beta",
+  "private": true,
+  "type": "module",
+  "description": "ORBIT · QQ 协议端控制台（原创新型 OneBot 11 控制台 + 内置协议内核）",
+  "scripts": {
+    "dev": "vite",
+    "dev:server": "node server/server.js",
+    "build": "vite build",
+    "start": "node server/server.js",
+    "test": "node --test --test-concurrency=1 --test-force-exit tests/*.test.js",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "lucide-vue-next": "^0.468.0",
+    "qrcode": "^1.5.4",
+    "vue": "^3.5.13",
+    "ws": "^8.22.1"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.0.0",
+    "@vitejs/plugin-vue": "^6.0.0",
+    "tailwindcss": "^4.0.0",
+    "vite": "^7.0.0"
+  }
+}
