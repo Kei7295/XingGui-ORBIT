@@ -3,6 +3,11 @@
   "version": "0.0.1-beta",
   "private": true,
   "type": "module",
+  "license": "AGPL-3.0-only",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Kei7295/XingGui-ORBIT.git"
+  },
   "description": "ORBIT · QQ 协议端控制台（原创新型 OneBot 11 控制台 + 内置协议内核）",
   "scripts": {
     "dev": "vite",
