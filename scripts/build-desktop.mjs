@@ -11,13 +11,21 @@ const version = JSON.parse(fs.readFileSync(path.join(root, 'package.json'), 'utf
 const electronVersion = JSON.parse(
   fs.readFileSync(path.join(root, 'node_modules', 'electron', 'package.json'), 'utf8')
 ).version
+const isWin = process.platform === 'win32'
+const npmCmd = isWin ? 'npm.cmd' : 'npm'
+const packagerCmd = path.join(
+  root,
+  'node_modules',
+  '.bin',
+  isWin ? 'electron-packager.cmd' : 'electron-packager'
+)
 
 function run(cmd, args, cwd = root, env = process.env) {
   console.log(`\n▸ ${cmd} ${args.join(' ')}`)
-  execFileSync(cmd, args, { cwd, stdio: 'inherit', env })
+  execFileSync(cmd, args, { cwd, stdio: 'inherit', env, shell: isWin })
 }
 
-run('npm', ['run', 'build'])
+run(npmCmd, ['run', 'build'])
 
 fs.rmSync(stageDir, { recursive: true, force: true })
 fs.mkdirSync(stageDir, { recursive: true })
@@ -48,9 +56,9 @@ fs.writeFileSync(
   )}\n`
 )
 
-run('npm', ['install', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], stageDir)
+run(npmCmd, ['install', '--omit=dev', '--ignore-scripts', '--no-audit', '--no-fund'], stageDir)
 
-run(path.join(root, 'node_modules', '.bin', 'electron-packager'), [
+run(packagerCmd, [
   stageDir,
   appName,
   '--platform=win32',
