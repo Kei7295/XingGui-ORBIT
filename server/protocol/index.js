@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { createSigner, normalizeSignerUrl, SignerError } from './signer.js'
+import { locateQQNT } from './ntqq/wrapper.js'
 
 const MODES = ['mock', 'ntqq']
 
@@ -14,7 +15,8 @@ export function createProtocolHub({ dataDir = process.env.ORBIT_DATA_DIR || './d
     mode: process.env.ORBIT_PROTOCOL === 'ntqq' ? 'ntqq' : 'mock',
     signerUrl: '',
     uin: '',
-    qua: ''
+    qua: '',
+    qqPath: ''
   }
 
   try {
@@ -35,9 +37,13 @@ export function createProtocolHub({ dataDir = process.env.ORBIT_DATA_DIR || './d
   async function status() {
     const blockers = []
     let signerState = { configured: Boolean(config.signerUrl), ok: false, latencyMs: 0, detail: '' }
+    const native = locateQQNT({ root: config.qqPath || process.env.ORBIT_QQ_PATH || '' })
 
     if (config.mode === 'ntqq') {
       if (!config.uin) blockers.push('缺少 QQ 号')
+      if (!native.found) {
+        blockers.push('未找到 QQNT 安装或 wrapper.node：请在设置中指定 QQ 安装目录')
+      }
       if (!config.signerUrl) {
         blockers.push('缺少签名服务地址')
       } else {
@@ -54,6 +60,12 @@ export function createProtocolHub({ dataDir = process.env.ORBIT_DATA_DIR || './d
       uin: config.uin,
       qua: config.qua,
       signer: { ...signerState, url: config.signerUrl },
+      native: {
+        found: native.found,
+        root: native.root,
+        version: native.version,
+        wrapperPath: native.wrapperPath
+      },
       capabilities: {
         login: config.mode === 'mock',
         sendMessage: config.mode === 'mock',
@@ -72,6 +84,7 @@ export function createProtocolHub({ dataDir = process.env.ORBIT_DATA_DIR || './d
     if (patch.signerUrl !== undefined) config.signerUrl = normalizeSignerUrl(patch.signerUrl)
     if (patch.uin !== undefined) config.uin = String(patch.uin || '').replace(/\D/g, '')
     if (patch.qua !== undefined) config.qua = String(patch.qua || '').trim()
+    if (patch.qqPath !== undefined) config.qqPath = String(patch.qqPath || '').trim()
     persist()
     return status()
   }

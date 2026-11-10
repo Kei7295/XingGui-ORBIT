@@ -193,11 +193,18 @@ curl -X POST http://localhost:8787/api/protocol \
   -d '{"mode":"ntqq","uin":"10001","signerUrl":"http://127.0.0.1:8080"}'
 ```
 
-当前只完成「协议层边界 + 签名服务客户端 + 前置条件检测」：
+当前只完成「协议层边界 + 签名服务客户端 + 原生层探测」：
 
 - 能力矩阵与阻塞项由 `GET /api/protocol` 返回，未满足条件时 `capabilities.login` 为 `false`；
 - 签名服务按 qsign 风格 `POST /sign` 调用，签名算法本身不在本仓库内；
+- `native` 字段会检查 QQNT 安装目录与 `wrapper.node`（Windows 常见路径、macOS `/Applications/QQ.app`、Linux `/opt/QQ`），也可用 `qqPath` 指定；
 - **登录交换（wtlogin）、发包与真实消息收发尚未实现**，需要真实账号的登录抓包与可用签名服务才能继续并验证。
+
+### 为什么是 wrapper.node
+
+参考 NapCat 的接入方式：真实 QQ 的收发能力来自 QQ 自带的 `wrapper.node`，由 `NodeIKernelLoginService`、`NodeIKernelMsgService` 等原生服务提供。ORBIT 只负责找到并载入它，把事件与动作映射成 OneBot 11，不复制 NapCat 代码，也不自研腾讯加密协议。
+
+下一步需要按该路径补齐：引擎初始化 → 扫码登录 → `getNTWrapperSession` → 监听 `onRecvMsg` → `sendMsg`。这些只能在装有 QQNT 的 Windows 上联调，沙箱内无法验证。
 
 因此 `ntqq` 模式现在不会建立任何腾讯连接，也不会弹出可扫的二维码。
 

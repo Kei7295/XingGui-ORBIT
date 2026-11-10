@@ -6,6 +6,7 @@ import path from 'node:path'
 import http from 'node:http'
 import { createProtocolHub } from '../server/protocol/index.js'
 import { createSigner, normalizeSignerUrl } from '../server/protocol/signer.js'
+import { locateQQNT } from '../server/protocol/ntqq/wrapper.js'
 
 function tempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'orbit-protocol-'))
@@ -84,3 +85,29 @@ test('签名请求会携带 uin 与 qua', async () => {
     server.close()
   }
 })
+
+test('能在 versions 目录下定位 QQNT wrapper', () => {
+  const root = tempDir()
+  const wrapperDir = path.join(root, 'versions', '9.9.9')
+  fs.mkdirSync(wrapperDir, { recursive: true })
+  fs.writeFileSync(path.join(wrapperDir, 'wrapper.node'), '')
+
+  const result = locateQQNT({ root, platform: 'win32' })
+  assert.equal(result.found, true)
+  assert.equal(result.version, '9.9.9')
+  assert.equal(result.wrapperPath, path.join(wrapperDir, 'wrapper.node'))
+})
+
+test('缺少 wrapper.node 时给出未安装状态', () => {
+  const result = locateQQNT({ root: tempDir(), platform: 'win32' })
+  assert.equal(result.found, false)
+  assert.equal(result.wrapperPath, '')
+})
+
+test('ntqq 状态会带出原生层诊断信息', async () => {
+  const hub = createProtocolHub({ dataDir: tempDir() })
+  const status = await hub.update({ mode: 'ntqq', qqPath: tempDir() })
+  assert.equal(status.native.found, false)
+  assert.ok(status.blockers.some((b) => b.includes('wrapper.node')))
+})
+
