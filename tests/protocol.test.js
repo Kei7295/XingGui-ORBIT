@@ -7,6 +7,7 @@ import http from 'node:http'
 import { createProtocolHub } from '../server/protocol/index.js'
 import { createSigner, normalizeSignerUrl } from '../server/protocol/signer.js'
 import { locateQQNT } from '../server/protocol/ntqq/wrapper.js'
+import { probeWrapper } from '../server/protocol/ntqq/probe.js'
 import { createUpstream, toWsUrl } from '../server/protocol/napcat/upstream.js'
 import { WebSocketServer } from 'ws'
 
@@ -117,6 +118,20 @@ test('上游地址会归一化成 ws/wss', () => {
   assert.equal(toWsUrl('http://127.0.0.1:3001'), 'ws://127.0.0.1:3001')
   assert.equal(toWsUrl('https://q.example.com/'), 'wss://q.example.com')
   assert.equal(toWsUrl('127.0.0.1:3001'), '')
+})
+
+test('未指定 wrapper 时探测安全返回', async () => {
+  const result = await probeWrapper('')
+  assert.equal(result.ok, false)
+  assert.match(result.error, /未指定/)
+})
+
+test('载入非原生模块时给出错误而不是崩溃', async () => {
+  const file = path.join(tempDir(), 'fake.node')
+  fs.writeFileSync(file, 'not a native module')
+  const result = await probeWrapper(file, { timeoutMs: 8000 })
+  assert.equal(result.ok, false)
+  assert.ok(result.error.length > 0)
 })
 
 test('能接收上游事件并按 echo 回传动作结果', async () => {

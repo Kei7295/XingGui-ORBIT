@@ -211,6 +211,13 @@ NapCat 的许可证是自定义的 **Limited Redistribution License**（Copyrigh
 
 `ntqq` 目前只做到原生层探测：`native` 字段会检查 QQNT 安装目录与 `wrapper.node`（Windows 常见路径、macOS `/Applications/QQ.app`、Linux `/opt/QQ`），也可用 `qqPath` 指定；签名服务按 qsign 风格 `POST /sign` 调用，签名算法不在本仓库内。
 
+```bash
+curl -X POST http://localhost:8787/api/protocol/native/probe \
+  -H "X-Orbit-Token: $ORBIT_CONSOLE_TOKEN"
+```
+
+探测在**独立子进程**里 `dlopen` 你的 `wrapper.node`，只清点导出的 `NodeI*` 服务，不发起任何网络请求；ABI 不匹配时子进程崩溃也不会影响主服务。返回的 `keys` / `services` 就是该版本 QQ 的真实接口面，可直接用于补齐会话初始化。
+
 登录交换（wtlogin）、发包与真实消息收发尚未实现，需要在装有 QQNT 的 Windows 上联调；在此之前不会建立任何腾讯连接，也不会弹出二维码。
 
 ---

@@ -389,6 +389,7 @@ route('POST', /^\/api\/protocol$/, async (ctx, body) => {
   }
 })
 route('POST', /^\/api\/protocol\/probe$/, () => protocol.probe())
+route('POST', /^\/api\/protocol\/native\/probe$/, () => protocol.probeNative())
 
 protocol.onUpstreamEvent((event) => {
   if (!event || !event.post_type) return

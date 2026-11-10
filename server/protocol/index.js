@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { createSigner, normalizeSignerUrl, SignerError } from './signer.js'
 import { locateQQNT } from './ntqq/wrapper.js'
+import { probeWrapper } from './ntqq/probe.js'
 import { createUpstream, toWsUrl } from './napcat/upstream.js'
 
 const MODES = ['mock', 'ntqq', 'napcat']
@@ -33,6 +34,7 @@ export function createProtocolHub({ dataDir = process.env.ORBIT_DATA_DIR || './d
 
   const listeners = new Set()
   let upstream = null
+  let lastProbe = null
 
   function persist() {
     fs.mkdirSync(dataDir, { recursive: true })
@@ -99,7 +101,8 @@ export function createProtocolHub({ dataDir = process.env.ORBIT_DATA_DIR || './d
         found: native.found,
         root: native.root,
         version: native.version,
-        wrapperPath: native.wrapperPath
+        wrapperPath: native.wrapperPath,
+        probe: lastProbe
       },
       upstream: { ...upstreamState, tokenConfigured: Boolean(config.upstreamToken) },
       capabilities: {
@@ -142,6 +145,16 @@ export function createProtocolHub({ dataDir = process.env.ORBIT_DATA_DIR || './d
     return upstream.request(action, params)
   }
 
+  async function probeNative() {
+    const native = locateQQNT({ root: config.qqPath || process.env.ORBIT_QQ_PATH || '' })
+    if (!native.found) {
+      lastProbe = { ok: false, error: '未找到 wrapper.node', keys: [], services: [], elapsedMs: 0 }
+      return lastProbe
+    }
+    lastProbe = await probeWrapper(native.wrapperPath)
+    return { ...lastProbe, wrapperPath: native.wrapperPath, version: native.version }
+  }
+
   syncUpstream()
 
   return {
@@ -149,6 +162,7 @@ export function createProtocolHub({ dataDir = process.env.ORBIT_DATA_DIR || './d
     status,
     update,
     probe: () => signer().probe(),
+    probeNative,
     onUpstreamEvent,
     request,
     get mode() {
