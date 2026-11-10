@@ -226,6 +226,17 @@ if (!gotLock) {
           label: '文件',
           submenu: [
             {
+              label: '开机自启',
+              type: 'checkbox',
+              checked: app.getLoginItemSettings().openAtLogin,
+              click: (item) =>
+                app.setLoginItemSettings({
+                  openAtLogin: item.checked,
+                  path: process.execPath,
+                  args: []
+                })
+            },
+            {
               label: '重新加载',
               accelerator: 'CmdOrCtrl+R',
               click: () => win && win.reload()
