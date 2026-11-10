@@ -66,6 +66,7 @@ run(packagerCmd, [
   '--out=' + releaseDir,
   '--overwrite',
   '--asar=false',
+  '--icon=' + path.join(root, 'desktop', 'assets', 'icon.ico'),
   '--app-version=' + version.replace('-beta', '.0'),
   '--electron-version=' + electronVersion,
   '--ignore=node_modules/.package-lock.json',

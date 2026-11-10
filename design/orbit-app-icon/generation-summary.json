@@ -1,0 +1,34 @@
+{
+  "skill": {
+    "name": "solo-graphic-generation",
+    "plugin": "trae-remote-official:trae-design",
+    "version": "2026.10.13.09.48.16"
+  },
+  "requestedSize": "1920×1920 生成后导出 256/512 PNG",
+  "actualImageSize": "square (1920×1920)",
+  "sizeConfirmation": "用户在提问中确认：使用方形生成，导出 256/512 PNG",
+  "assetCount": 3,
+  "assets": [
+    {
+      "filename": "orbit-app-icon.jpg",
+      "title": "轨道卫星图标主图",
+      "intendedSize": "1920×1920",
+      "status": "generated"
+    },
+    {
+      "filename": "icon-512.png",
+      "title": "应用图标 512",
+      "intendedSize": "512×512",
+      "status": "derived"
+    },
+    {
+      "filename": "icon-256.png",
+      "title": "应用图标 256",
+      "intendedSize": "256×256",
+      "status": "derived"
+    }
+  ],
+  "canvasImageNodeIds": ["image-001", "image-002", "image-003"],
+  "validation": "passed",
+  "notes": "主图为生成结果；512/256 为按用户确认的导出尺寸进行的圆角裁切与缩放。"
+}

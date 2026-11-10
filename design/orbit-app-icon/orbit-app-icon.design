@@ -1,0 +1,51 @@
+{
+  "data": [
+    {
+      "id": "image-001",
+      "title": "轨道卫星图标主图",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1794310620005,
+      "devMetadata": {
+        "imageSrc": "assets/orbit-app-icon.jpg"
+      },
+      "canvasData": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "id": "image-002",
+      "title": "应用图标 512",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1794310620006,
+      "devMetadata": {
+        "imageSrc": "assets/icon-512.png"
+      },
+      "canvasData": {
+        "x": 0,
+        "y": 0
+      }
+    },
+    {
+      "id": "image-003",
+      "title": "应用图标 256",
+      "type": "image",
+      "version": 1,
+      "createdAt": 1794310620007,
+      "devMetadata": {
+        "imageSrc": "assets/icon-256.png"
+      },
+      "canvasData": {
+        "x": 0,
+        "y": 0
+      }
+    }
+  ],
+  "config": {
+    "autoLayout": true,
+    "deviceType": "freeSize",
+    "projectName": "星轨 ORBIT 应用图标"
+  }
+}
