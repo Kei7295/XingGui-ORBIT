@@ -7,6 +7,8 @@ import http from 'node:http'
 import { createProtocolHub } from '../server/protocol/index.js'
 import { createSigner, normalizeSignerUrl } from '../server/protocol/signer.js'
 import { locateQQNT } from '../server/protocol/ntqq/wrapper.js'
+import { createUpstream, toWsUrl } from '../server/protocol/napcat/upstream.js'
+import { WebSocketServer } from 'ws'
 
 function tempDir() {
   return fs.mkdtempSync(path.join(os.tmpdir(), 'orbit-protocol-'))
@@ -109,5 +111,49 @@ test('ntqq 状态会带出原生层诊断信息', async () => {
   const status = await hub.update({ mode: 'ntqq', qqPath: tempDir() })
   assert.equal(status.native.found, false)
   assert.ok(status.blockers.some((b) => b.includes('wrapper.node')))
+})
+
+test('上游地址会归一化成 ws/wss', () => {
+  assert.equal(toWsUrl('http://127.0.0.1:3001'), 'ws://127.0.0.1:3001')
+  assert.equal(toWsUrl('https://q.example.com/'), 'wss://q.example.com')
+  assert.equal(toWsUrl('127.0.0.1:3001'), '')
+})
+
+test('能接收上游事件并按 echo 回传动作结果', async () => {
+  const wss = new WebSocketServer({ port: 0, host: '127.0.0.1' })
+  await new Promise((resolve) => wss.once('listening', resolve))
+  const url = `ws://127.0.0.1:${wss.address().port}`
+  const events = []
+
+  wss.on('connection', (socket) => {
+    socket.send(
+      JSON.stringify({
+        post_type: 'message',
+        message_type: 'group',
+        group_id: 123,
+        user_id: 456,
+        raw_message: '真实消息',
+        message: [{ type: 'text', data: { text: '真实消息' } }]
+      })
+    )
+    socket.on('message', (raw) => {
+      const body = JSON.parse(String(raw))
+      socket.send(JSON.stringify({ status: 'ok', retcode: 0, data: { message_id: 99 }, echo: body.echo }))
+    })
+  })
+
+  const upstream = createUpstream({ url, onEvent: (event) => events.push(event) })
+  try {
+    for (let i = 0; i < 100 && !upstream.online; i += 1) {
+      await new Promise((resolve) => setTimeout(resolve, 20))
+    }
+    assert.equal(upstream.online, true)
+    const result = await upstream.request('send_group_msg', { group_id: 123, message: 'hi' })
+    assert.equal(result.data.message_id, 99)
+    assert.equal(events[0].raw_message, '真实消息')
+  } finally {
+    upstream.close()
+    await new Promise((resolve) => wss.close(resolve))
+  }
 })
 

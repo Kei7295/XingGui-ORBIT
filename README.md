@@ -36,8 +36,8 @@
 
 它**不是**：
 
-- 不是 NapCat / SnowLuna 的代码分支，也没有包含任何第三方协议端源码；
-- 不是真实 QQ 客户端，**不会连接腾讯服务器**（当前 `0.0.1-beta` 的协议内核为本地演示实现）；
+- 不是 NapCat / SnowLuna 的代码分支，也没有包含任何第三方协议端源码；真实 QQ 能力通过 OneBot 11 接入你自行部署的上游协议端；
+- 不是真实 QQ 客户端：默认 `mock` 模式不会连接腾讯服务器，需要真实账号时请切换到 `napcat` 模式接入你自行部署的上游协议端；
 - 不是一键养号的灰产工具，不提供任何绕过平台风控的能力。
 
 ---
@@ -117,6 +117,8 @@ npm run dev:server   # 后端，端口 8787
 | `ORBIT_ACCESS_TOKEN` | `orbit-demo-token` | OneBot 接口 `access_token` |
 | `ORBIT_CONSOLE_TOKEN` | 启动时随机生成 | 控制台写操作令牌 |
 | `ORBIT_DATA_DIR` | `./data` | 状态文件目录 |
+| `ORBIT_PROTOCOL` | `mock` | 协议模式：`mock` / `napcat` / `ntqq` |
+| `ORBIT_UPSTREAM_URL` | 空 | `napcat` 模式的上游地址，如 `ws://127.0.0.1:3001` |
 
 ```bash
 ORBIT_ACCESS_TOKEN='你的密钥' PORT=8787 npm start
@@ -176,37 +178,40 @@ ORBIT 会主动外连，使用 `Authorization: Bearer <主密钥>`，断线后�
 
 ---
 
-## 真实 QQ 接入（实验）
+## 接入真实 QQ
 
-`0.0.1-beta` 默认仍运行演示内核。协议层已改为可切换：
+协议层有三种模式，默认 `mock`（演示内核）：
+
+| 模式 | 账号来源 | 状态 |
+| --- | --- | --- |
+| `mock` | 内置演示数据 | 可用 |
+| `napcat` | 上游真实协议端（NapCat 等） | **可用** |
+| `ntqq` | 自研原生层 | 仅完成 wrapper 探测 |
 
 ```bash
-ORBIT_PROTOCOL=ntqq npm start
-```
-
-对应接口：
-
-```bash
-curl http://localhost:8787/api/protocol
 curl -X POST http://localhost:8787/api/protocol \
   -H 'Content-Type: application/json' \
-  -d '{"mode":"ntqq","uin":"10001","signerUrl":"http://127.0.0.1:8080"}'
+  -H "X-Orbit-Token: $ORBIT_CONSOLE_TOKEN" \
+  -d '{"mode":"napcat","upstreamUrl":"ws://127.0.0.1:3001","upstreamToken":"你的token"}'
 ```
 
-当前只完成「协议层边界 + 签名服务客户端 + 原生层探测」：
+连接成功后 `GET /api/protocol` 的 `upstream.status` 为 `online`，能力矩阵全部为 `true`：
 
-- 能力矩阵与阻塞项由 `GET /api/protocol` 返回，未满足条件时 `capabilities.login` 为 `false`；
-- 签名服务按 qsign 风格 `POST /sign` 调用，签名算法本身不在本仓库内；
-- `native` 字段会检查 QQNT 安装目录与 `wrapper.node`（Windows 常见路径、macOS `/Applications/QQ.app`、Linux `/opt/QQ`），也可用 `qqPath` 指定；
-- **登录交换（wtlogin）、发包与真实消息收发尚未实现**，需要真实账号的登录抓包与可用签名服务才能继续并验证。
+- 上游事件（`message` / `notice` / `request` / `meta_event`）会转发给 ORBIT 的 OneBot 客户端、反向 WS 与事件上报；
+- ORBIT 收到的 OneBot 动作会带 `echo` 反向代理到上游，失败时回传 `retcode`；
+- 上游地址支持 `ws://`、`wss://`、`http://`、`https://`，断线自动重连。
 
-### 为什么是 wrapper.node
+### 关于 NapCat
 
-参考 NapCat 的接入方式：真实 QQ 的收发能力来自 QQ 自带的 `wrapper.node`，由 `NodeIKernelLoginService`、`NodeIKernelMsgService` 等原生服务提供。ORBIT 只负责找到并载入它，把事件与动作映射成 OneBot 11，不复制 NapCat 代码，也不自研腾讯加密协议。
+真实收发能力来自 [NapCatQQ](https://github.com/NapNeko/NapCatQQ)：它在 QQNT 里加载 QQ 自带的 `wrapper.node`，再用 `NodeIKernelLoginService` / `NodeIKernelMsgService` 驱动客户端。
 
-下一步需要按该路径补齐：引擎初始化 → 扫码登录 → `getNTWrapperSession` → 监听 `onRecvMsg` → `sendMsg`。这些只能在装有 QQNT 的 Windows 上联调，沙箱内无法验证。
+NapCat 的许可证是自定义的 **Limited Redistribution License**（Copyright © 2024 Mlikiowa），与本项目的 AGPL-3.0 不兼容，因此本仓库**不复制、不内置、不分发**其任何代码，只通过 OneBot 11 做进程间互联。你需要自行从官方仓库获取并遵守其许可证。
 
-因此 `ntqq` 模式现在不会建立任何腾讯连接，也不会弹出可扫的二维码。
+### 自研 `ntqq` 模式
+
+`ntqq` 目前只做到原生层探测：`native` 字段会检查 QQNT 安装目录与 `wrapper.node`（Windows 常见路径、macOS `/Applications/QQ.app`、Linux `/opt/QQ`），也可用 `qqPath` 指定；签名服务按 qsign 风格 `POST /sign` 调用，签名算法不在本仓库内。
+
+登录交换（wtlogin）、发包与真实消息收发尚未实现，需要在装有 QQNT 的 Windows 上联调；在此之前不会建立任何腾讯连接，也不会弹出二维码。
 
 ---
 

@@ -189,7 +189,7 @@ function connectReverse() {
     engine.setReverseStatus({ status: 'connected', attempts: 0, lastError: '' })
   })
 
-  ws.on('message', (raw) => {
+  ws.on('message', async (raw) => {
     let body
     try {
       body = JSON.parse(String(raw))
@@ -197,7 +197,7 @@ function connectReverse() {
       return
     }
     if (!body || !body.action) return
-    reverseSend(executeOneBot(body.action, body.params || {}, body.echo || '', token))
+    reverseSend(await executeOneBot(body.action, body.params || {}, body.echo || '', token))
   })
 
   ws.on('error', (err) => {
@@ -290,7 +290,7 @@ wss.on('connection', (ws, req, token) => {
   const heartbeat = setInterval(() => wsSend(ws, metaEvent('heartbeat')), 30_000)
   ws.on('close', () => clearInterval(heartbeat))
   ws.on('error', () => clearInterval(heartbeat))
-  ws.on('message', (raw) => {
+  ws.on('message', async (raw) => {
     let action = ''
     let params = {}
     let echo = ''
@@ -302,7 +302,7 @@ wss.on('connection', (ws, req, token) => {
     } catch {
       return wsSend(ws, { status: 'failed', retcode: 1400, data: null, message: 'JSON 解析失败', echo })
     }
-    wsSend(ws, executeOneBot(action, params, echo, ws.token))
+    wsSend(ws, await executeOneBot(action, params, echo, ws.token))
   })
 })
 
@@ -390,6 +390,13 @@ route('POST', /^\/api\/protocol$/, async (ctx, body) => {
 })
 route('POST', /^\/api\/protocol\/probe$/, () => protocol.probe())
 
+protocol.onUpstreamEvent((event) => {
+  if (!event || !event.post_type) return
+  broadcastOneBot(event)
+  reverseSend(event)
+  reportEvent(event)
+})
+
 route('GET', /^\/api\/onebot\/actions$/, () => engine.onebotActions())
 route('GET', /^\/api\/onebot\/network$/, () => engine.networkView())
 route('POST', /^\/api\/onebot\/network$/, (ctx, body) => {
@@ -406,11 +413,26 @@ route('POST', /^\/api\/onebot\/network\/reconnect$/, () => {
 
 /* ------------------------------------------------------------------ onebot */
 
-function executeOneBot(action, params = {}, echo = '', token = '') {
+async function executeOneBot(action, params = {}, echo = '', token = '') {
   if (!action) {
     return { status: 'failed', retcode: 1400, data: null, message: '缺少 action', echo }
   }
   try {
+    if (protocol.bridged) {
+      const upstream = await protocol.request(action, params)
+      const key = engine.apiKeys.find((k) => k.enabled && k.token === token)
+      if (key) key.lastUsed = Date.now()
+      if (upstream.status === 'failed' || upstream.retcode !== 0) {
+        return {
+          status: 'failed',
+          retcode: upstream.retcode || 1400,
+          data: null,
+          message: upstream.message || upstream.wording || '上游动作失败',
+          echo
+        }
+      }
+      return { status: 'ok', retcode: 0, data: upstream.data, echo }
+    }
     const data = engine.handleOneBot(action, params)
     const key = engine.apiKeys.find((k) => k.enabled && k.token === token)
     if (key) key.lastUsed = Date.now()
@@ -468,7 +490,7 @@ async function handleOneBot(req, res, url) {
     }
   }
 
-  const payload = executeOneBot(action, params, echo, token)
+  const payload = await executeOneBot(action, params, echo, token)
   return json(res, payload.status === 'ok' ? 200 : action ? 200 : 400, payload)
 }
 
