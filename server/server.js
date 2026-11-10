@@ -4,6 +4,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { WebSocketServer, WebSocket } from 'ws'
 import { engine, ApiError, VERSION } from './engine.js'
+import { createProtocolHub } from './protocol/index.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const DIST = path.join(__dirname, '..', 'dist')
@@ -377,6 +378,17 @@ route('DELETE', /^\/api\/keys\/([\w-]+)$/, (ctx) => engine.removeKey(ctx.params[
 
 route('GET', /^\/api\/settings$/, () => engine.settings)
 route('POST', /^\/api\/settings$/, (ctx, body) => engine.updateSettings(body))
+
+const protocol = createProtocolHub()
+route('GET', /^\/api\/protocol$/, () => protocol.status())
+route('POST', /^\/api\/protocol$/, async (ctx, body) => {
+  try {
+    return await protocol.update(body)
+  } catch (err) {
+    throw new ApiError(400, err.message)
+  }
+})
+route('POST', /^\/api\/protocol\/probe$/, () => protocol.probe())
 
 route('GET', /^\/api\/onebot\/actions$/, () => engine.onebotActions())
 route('GET', /^\/api\/onebot\/network$/, () => engine.networkView())

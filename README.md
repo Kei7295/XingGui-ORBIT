@@ -176,6 +176,33 @@ ORBIT 会主动外连，使用 `Authorization: Bearer <主密钥>`，断线后�
 
 ---
 
+## 真实 QQ 接入（实验）
+
+`0.0.1-beta` 默认仍运行演示内核。协议层已改为可切换：
+
+```bash
+ORBIT_PROTOCOL=ntqq npm start
+```
+
+对应接口：
+
+```bash
+curl http://localhost:8787/api/protocol
+curl -X POST http://localhost:8787/api/protocol \
+  -H 'Content-Type: application/json' \
+  -d '{"mode":"ntqq","uin":"10001","signerUrl":"http://127.0.0.1:8080"}'
+```
+
+当前只完成「协议层边界 + 签名服务客户端 + 前置条件检测」：
+
+- 能力矩阵与阻塞项由 `GET /api/protocol` 返回，未满足条件时 `capabilities.login` 为 `false`；
+- 签名服务按 qsign 风格 `POST /sign` 调用，签名算法本身不在本仓库内；
+- **登录交换（wtlogin）、发包与真实消息收发尚未实现**，需要真实账号的登录抓包与可用签名服务才能继续并验证。
+
+因此 `ntqq` 模式现在不会建立任何腾讯连接，也不会弹出可扫的二维码。
+
+---
+
 ## 安全模型
 
 - 控制台所有写接口校验 `X-Orbit-Token`，令牌由 `/api/bootstrap` 下发；
